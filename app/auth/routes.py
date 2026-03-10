@@ -27,7 +27,7 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         )
 
     # Create user
-    hashed_password = get_passxword_hash(user_data.password)
+    hashed_password = get_password_hash(user_data.password)
     user = User(
         name=user_data.name,
         email=user_data.email,
@@ -63,7 +63,7 @@ async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     # Create access token
     access_token = create_access_token(
-        data={"sub": user.id, "role": user.role}
+        data={"sub": str(user.id), "role": user.role}
     )
 
     return Token(access_token=access_token)
