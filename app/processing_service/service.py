@@ -3,7 +3,7 @@ from sqlalchemy import select
 from typing import Optional
 
 from app.models.models import Complaint, ComplaintStatus, Priority, User, UserRole
-from app.schemas.schemas import ComplaintCreate, ComplaintUpdate
+from app.schemas.schemas import ComplaintUpdate
 
 
 class ProcessingService:
@@ -12,16 +12,25 @@ class ProcessingService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create_complaint(self, user_id: int, complaint_data: ComplaintCreate) -> Complaint:
+    async def create_complaint(
+        self,
+        user_id: int,
+        title: str,
+        description: str,
+        latitude: float,
+        longitude: float,
+        image_url: Optional[str] = None,
+        priority: Priority = Priority.MEDIUM,
+    ) -> Complaint:
         """Create a new complaint."""
         complaint = Complaint(
             user_id=user_id,
-            title=complaint_data.title,
-            description=complaint_data.description,
-            latitude=complaint_data.latitude,
-            longitude=complaint_data.longitude,
-            image_url=complaint_data.image_url,
-            priority=complaint_data.priority,
+            title=title,
+            description=description,
+            latitude=latitude,
+            longitude=longitude,
+            image_url=image_url,
+            priority=priority,
             status=ComplaintStatus.PENDING,
         )
         self.db.add(complaint)

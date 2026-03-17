@@ -1,29 +1,52 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 
 from app.core.database import get_db
-from app.models.models import User
+from app.models.models import User, Priority
 from app.schemas.schemas import (
-    ComplaintCreate,
     ComplaintResponse,
     ComplaintUpdate,
-    ImageUpload,
 )
 from app.auth.auth_utils import get_current_user, require_admin
 from app.processing_service.service import ProcessingService
+from app.storage.gcs_service import upload_image_to_gcs
 
 router = APIRouter(prefix="/complaints", tags=["Processing Service"])
 
 
 @router.post("", response_model=ComplaintResponse, status_code=status.HTTP_201_CREATED)
 async def create_complaint(
-    complaint_data: ComplaintCreate,
+    title: str = Form(..., min_length=1, max_length=255),
+    description: str = Form(..., min_length=1),
+    latitude: float = Form(..., ge=-90, le=90),
+    longitude: float = Form(..., ge=-180, le=180),
+    priority: Priority = Form(Priority.MEDIUM),
+    image: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
-    """Create a new complaint. Any authenticated user can create."""
+    """
+    Create a new complaint. Any authenticated user can create.
+
+    Accepts multipart form data. If an image file is provided,
+    it will be uploaded to Google Cloud Storage automatically.
+    """
+    # Upload image to GCS if provided
+    image_url = None
+    if image and image.filename:
+        image_url = await upload_image_to_gcs(image, current_user.id)
+
     service = ProcessingService(db)
-    complaint = await service.create_complaint(current_user.id, complaint_data)
+    complaint = await service.create_complaint(
+        user_id=current_user.id,
+        title=title,
+        description=description,
+        latitude=latitude,
+        longitude=longitude,
+        image_url=image_url,
+        priority=priority,
+    )
     return complaint
 
 
@@ -67,18 +90,25 @@ async def mark_complaint_resolved(
 
 
 @router.patch("/{complaint_id}/image", response_model=ComplaintResponse)
-async def upload_image_url(
+async def upload_complaint_image(
     complaint_id: int,
-    image_data: ImageUpload,
+    image: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
-    """Upload image URL for a complaint. Only complaint owner can update."""
+    """
+    Upload an image file for a complaint. Only the complaint owner can update.
+
+    The image is uploaded to Google Cloud Storage and the URL is stored.
+    """
+    # Upload to GCS
+    image_url = await upload_image_to_gcs(image, current_user.id)
+
     service = ProcessingService(db)
     complaint = await service.upload_image_url(
         complaint_id,
         current_user.id,
-        image_data.image_url
+        image_url,
     )
 
     if complaint is None:

@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
 
+    # Google Cloud Storage
+    GCS_BUCKET_NAME: str = ""
+    GCS_PROJECT_ID: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = True
