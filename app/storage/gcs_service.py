@@ -36,7 +36,8 @@ MIME_TO_EXTENSION = {
 @lru_cache()
 def _get_gcs_client() -> storage.Client:
     """Get a cached GCS client instance."""
-    return storage.Client()
+    settings = get_settings()
+    return storage.Client(project=settings.GCS_PROJECT_ID)
 
 
 def _get_bucket() -> storage.Bucket:
@@ -100,10 +101,12 @@ async def upload_image_to_gcs(file: UploadFile, user_id: int) -> str:
         content_type=file.content_type,
     )
 
-    # Make the blob publicly readable
-    blob.make_public()
+    # Construct the public URL directly
+    # (public access is managed at the bucket IAM level, not per-object ACL)
+    settings = get_settings()
+    public_url = f"https://storage.googleapis.com/{settings.GCS_BUCKET_NAME}/{blob_name}"
 
-    return blob.public_url
+    return public_url
 
 
 async def delete_image_from_gcs(image_url: str) -> bool:

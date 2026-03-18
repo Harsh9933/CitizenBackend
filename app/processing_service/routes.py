@@ -45,7 +45,7 @@ async def create_complaint(
         latitude=latitude,
         longitude=longitude,
         image_url=image_url,
-        priority=priority,
+        priority=priority.value,
     )
     return complaint
 

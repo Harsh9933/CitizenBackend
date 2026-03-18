@@ -20,7 +20,7 @@ class ProcessingService:
         latitude: float,
         longitude: float,
         image_url: Optional[str] = None,
-        priority: Priority = Priority.MEDIUM,
+        priority: str = Priority.MEDIUM.value,
     ) -> Complaint:
         """Create a new complaint."""
         complaint = Complaint(
@@ -31,7 +31,7 @@ class ProcessingService:
             longitude=longitude,
             image_url=image_url,
             priority=priority,
-            status=ComplaintStatus.PENDING,
+            status=ComplaintStatus.PENDING.value,
         )
         self.db.add(complaint)
         await self.db.flush()
@@ -57,9 +57,9 @@ class ProcessingService:
             return None
 
         if update_data.status is not None:
-            complaint.status = update_data.status
+            complaint.status = update_data.status.value if isinstance(update_data.status, ComplaintStatus) else update_data.status
         if update_data.priority is not None:
-            complaint.priority = update_data.priority
+            complaint.priority = update_data.priority.value if isinstance(update_data.priority, Priority) else update_data.priority
 
         await self.db.flush()
         await self.db.refresh(complaint)
@@ -78,7 +78,7 @@ class ProcessingService:
         if not complaint:
             return None
 
-        complaint.status = ComplaintStatus.RESOLVED
+        complaint.status = ComplaintStatus.RESOLVED.value
         await self.db.flush()
         await self.db.refresh(complaint)
         return complaint
@@ -90,6 +90,8 @@ class ProcessingService:
         image_url: str
     ) -> Optional[Complaint]:
         """Upload image URL to a complaint. User can only update their own complaints."""
+        from app.storage.gcs_service import delete_image_from_gcs
+
         result = await self.db.execute(
             select(Complaint).where(Complaint.id == complaint_id)
         )
@@ -101,6 +103,10 @@ class ProcessingService:
         # Only complaint owner or admin can update image
         if complaint.user_id != user_id:
             return None
+
+        # Delete the old image from GCS if it exists
+        if complaint.image_url:
+            await delete_image_from_gcs(complaint.image_url)
 
         complaint.image_url = image_url
         await self.db.flush()

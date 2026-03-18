@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import String, Text, Float, ForeignKey, Enum as SQLEnum, DateTime
+from sqlalchemy import String, Text, Float, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 import enum
@@ -50,15 +50,15 @@ class Complaint(Base):
     latitude: Mapped[float] = mapped_column(Float, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    status: Mapped[ComplaintStatus] = mapped_column(
-        SQLEnum(ComplaintStatus),
-        default=ComplaintStatus.PENDING,
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default=ComplaintStatus.PENDING.value,
         nullable=False,
         index=True
     )
-    priority: Mapped[Priority] = mapped_column(
-        SQLEnum(Priority),
-        default=Priority.MEDIUM,
+    priority: Mapped[str] = mapped_column(
+        String(20),
+        default=Priority.MEDIUM.value,
         nullable=False,
         index=True
     )
