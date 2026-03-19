@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: CitizenComplaint
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Override DATABASE_URL to point to the 'db' service inside Docker network
+      DATABASE_URL: postgresql+asyncpg://postgres:admin@db:5432/CitizenComplaint
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Mount GCS credentials file if using a service account JSON key
+      # Uncomment the lines below and set GOOGLE_APPLICATION_CREDENTIALS in your .env
+      # - ./gcs-key.json:/app/gcs-key.json:ro
+      # environment:
+      #   GOOGLE_APPLICATION_CREDENTIALS: /app/gcs-key.json
+      []
+
+volumes:
+  postgres_data:
