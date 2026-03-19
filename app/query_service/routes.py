@@ -13,6 +13,28 @@ router = APIRouter(prefix="/complaints", tags=["Query Service"])
 settings = get_settings()
 
 
+@router.get("/public", response_model=ComplaintListResponse)
+async def get_public_complaints(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=settings.MAX_PAGE_SIZE),
+    status: Optional[ComplaintStatus] = None,
+    priority: Optional[Priority] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all complaints for public view (no authentication required).
+    Useful for displaying reports on a map for the homepage.
+    """
+    service = QueryService(db)
+    return await service.get_all_complaints(
+        page=page,
+        page_size=page_size,
+        status=status,
+        priority=priority
+    )
+
+
+
 @router.get("/{complaint_id}", response_model=ComplaintResponse)
 async def get_complaint(
     complaint_id: int,
