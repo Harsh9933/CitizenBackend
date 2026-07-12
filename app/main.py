@@ -1,8 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.auth.routes import router as auth_router
+from app.core.database import get_db
 from app.processing_service.routes import router as processing_router
 from app.query_service.routes import router as query_router
 
@@ -24,6 +26,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/db", tags=["Test"])
+async def testing(db: AsyncSession = Depends(get_db)):
+    url = db.get_bind().url.render_as_string(hide_password=False)
+
+    return url
 
 # Include routers
 app.include_router(auth_router)
