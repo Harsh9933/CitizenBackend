@@ -1,6 +1,5 @@
 annotated-types==0.7.0
 anyio==4.12.1
-asyncpg==0.29.0
 bcrypt==5.0.0
 beautifulsoup4==4.14.3
 certifi==2026.2.25
@@ -29,7 +28,6 @@ passlib==1.7.4
 proto-plus==1.27.1
 protobuf==6.33.5
 psycopg==3.3.4
-psycopg2==2.9.12
 pyasn1==0.6.2
 pyasn1_modules==0.4.2
 pycparser==3.0
